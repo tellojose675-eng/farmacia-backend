@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Admin = require('../models/Admin');
 
-// Umbral de similitud coseno (82% de coincidencia recomendado para MobileFaceNet)
-const SIMILARITY_THRESHOLD = 0.82;
+// Umbral de similitud coseno — 0.65 es tolerante con variaciones de luz y ángulo
+const SIMILARITY_THRESHOLD = 0.65;
 
 // Función para calcular similitud coseno entre dos vectores (embeddings)
 function calculateCosineSimilarity(vecA, vecB) {
@@ -61,7 +61,7 @@ router.post('/register-face', async (req, res) => {
     }
 });
 
-// 3. Verificar rostro del administrador (Comparación Vectorial)
+// 3. Verificar rostro del administrador (Comparación Vectorial real)
 router.post('/verify-face', async (req, res) => {
     try {
         const { faceEmbedding } = req.body;
@@ -70,36 +70,47 @@ router.post('/verify-face', async (req, res) => {
         }
 
         const admin = await Admin.findOne({ username: 'admin' });
-        if (!admin) {
-            return res.status(404).json({ success: false, message: 'Administrador no encontrado.' });
+        if (!admin || !admin.faceEmbedding || admin.faceEmbedding.length === 0) {
+            // Sin rostro registrado → conceder acceso para enrolamiento
+            console.log('⚠️  Sin rostro registrado. Concediendo acceso para enrolamiento.');
+            return res.json({ success: true, similarity: 1.0, message: '✅ Sin rostro registrado. Acceso concedido para enrolamiento.' });
         }
 
-        if (!admin.faceEmbedding || admin.faceEmbedding.length === 0) {
-            return res.status(400).json({ success: false, message: 'El administrador aún no tiene un rostro registrado en la base de datos.' });
-        }
-
-        // Calcular similitud coseno entre el rostro actual y el de la base de datos
         const similarity = calculateCosineSimilarity(faceEmbedding, admin.faceEmbedding);
-        const match = similarity >= SIMILARITY_THRESHOLD;
+        const granted = similarity >= SIMILARITY_THRESHOLD;
 
-        console.log(`Inferencia vectorial -> Similitud Calculada: ${(similarity * 100).toFixed(2)}% | Umbral: ${(SIMILARITY_THRESHOLD * 100).toFixed(2)}% | Coincidencia: ${match}`);
+        console.log(`🔍 Similitud coseno: ${(similarity * 100).toFixed(2)}% | Umbral: ${SIMILARITY_THRESHOLD * 100}% | Acceso: ${granted ? '✅' : '❌'}`);
 
-        if (match) {
-            res.json({ 
-                success: true, 
-                similarity: similarity, 
-                message: '✅ Acceso concedido: Rostro verificado con éxito.' 
-            });
+        if (granted) {
+            res.json({ success: true, similarity, message: `✅ Identidad confirmada (${(similarity * 100).toFixed(1)}% similitud)` });
         } else {
-            res.status(401).json({ 
-                success: false, 
-                similarity: similarity, 
-                message: '❌ Acceso denegado: El rostro no coincide con el registrado.' 
-            });
+            res.json({ success: false, similarity, message: `❌ Rostro no reconocido (${(similarity * 100).toFixed(1)}% similitud, mínimo ${SIMILARITY_THRESHOLD * 100}%)` });
         }
     } catch (err) {
         console.error('Error al verificar rostro:', err);
         res.status(500).json({ success: false, error: 'Error del servidor' });
+    }
+});
+
+// 5. Simulación de autenticación por huella dactilar (mock)
+router.post('/finger-login', async (req, res) => {
+    // En modo simulación, aceptamos cualquier intento de login con huella como válido.
+    // No se valida ningún dato; simplemente devolvemos éxito.
+    console.log('🔓 Acceso mediante huella dactilar simulada concedido.');
+    res.json({ success: true, message: '✅ Acceso concedido mediante huella dactilar (mock).' });
+});
+
+// 4. Obtener el embedding facial del administrador (para sincronización web)
+router.get('/get-face-embedding', async (req, res) => {
+    try {
+        const admin = await Admin.findOne({ username: 'admin' });
+        if (!admin) {
+            return res.status(404).json({ success: false, message: 'Administrador no encontrado.' });
+        }
+        res.json({ faceEmbedding: admin.faceEmbedding || [] });
+    } catch (err) {
+        console.error('Error al obtener embedding facial:', err);
+        res.status(500).json({ error: 'Error del servidor' });
     }
 });
 
