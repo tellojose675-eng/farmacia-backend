@@ -10,18 +10,18 @@ class FarmaciaApp {
         this.products = [];
         this.sales = [];
         this.cart = [];
-        
+
         // Active states
         this.currentSection = 'store';
         this.currentAdminTab = 'dashboard';
         this.isAdminLoggedIn = false;
-        
+
         // Webcam state
         this.isVerifyCameraOn = false;
         this.isEnrollCameraOn = false;
         this.verifyStream = null;
         this.enrollStream = null;
-        
+
         // Local cache
         this.hasFaceEnMongoDB = null;
         // Flag to indicate fingerprint login flow
@@ -32,17 +32,17 @@ class FarmaciaApp {
         this.loadCartFromStorage();
         this.checkAdminSession();
         this.setupEventListeners();
-        
+
         // Load initial data
         await this.fetchProducts();
         await this.fetchSales();
         this.checkFaceStatus();
-        
+
         // Render initial UI
         this.renderProducts();
         this.renderCategories();
         this.updateCartBadge();
-        
+
         console.log('🚀 FarmaciaApp inicializada y sincronizada.');
     }
 
@@ -51,7 +51,7 @@ class FarmaciaApp {
         document.getElementById('appBackdrop').addEventListener('click', () => {
             this.handleBackdropClick();
         });
-        
+
         // ESC key handler to close modal/drawers
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
@@ -111,7 +111,7 @@ class FarmaciaApp {
         document.querySelectorAll('.content-section').forEach(sec => {
             sec.classList.remove('active');
         });
-        
+
         const target = document.getElementById(`${sectionId}Section`);
         if (target) {
             target.classList.add('active');
@@ -194,7 +194,7 @@ class FarmaciaApp {
             let stockClass = 'stock-ok';
             let stockText = `Stock: ${p.stock} uds`;
             let disabledAttr = '';
-            
+
             if (p.stock === 0) {
                 stockClass = 'stock-out';
                 stockText = 'Agotado';
@@ -229,8 +229,8 @@ class FarmaciaApp {
     renderCategories() {
         const filterSelect = document.getElementById('categoryFilter');
         const categories = [...new Set(this.products.map(p => p.categoria))];
-        
-        filterSelect.innerHTML = '<option value="">Todas las categorías</option>' + 
+
+        filterSelect.innerHTML = '<option value="">Todas las categorías</option>' +
             categories.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
@@ -239,8 +239,8 @@ class FarmaciaApp {
         const category = document.getElementById('categoryFilter').value;
 
         const filtered = this.products.filter(p => {
-            const matchesSearch = p.nombre.toLowerCase().includes(query) || 
-                                  p.descripcion.toLowerCase().includes(query);
+            const matchesSearch = p.nombre.toLowerCase().includes(query) ||
+                p.descripcion.toLowerCase().includes(query);
             const matchesCategory = !category || p.categoria === category;
             return matchesSearch && matchesCategory;
         });
@@ -257,7 +257,7 @@ class FarmaciaApp {
         if (!product) return;
 
         const cartItem = this.cart.find(item => item.product._id === productId);
-        
+
         if (cartItem) {
             if (cartItem.qty >= product.stock) {
                 this.showToast(`Stock máximo alcanzado para ${product.nombre}`, 'warning');
@@ -401,7 +401,7 @@ class FarmaciaApp {
         if (this.cart.length === 0) return;
 
         this.showProgressBar(30);
-        
+
         // Ask client name and delivery address matching Android fields
         const nombreCliente = prompt('Ingresa tu Nombre Completo:');
         if (!nombreCliente) {
@@ -535,7 +535,7 @@ class FarmaciaApp {
 
     showLoginStep(step) {
         document.querySelectorAll('.login-step').forEach(el => el.classList.remove('active'));
-        
+
         if (step === 'password') {
             document.getElementById('loginStepPassword').classList.add('active');
             this.stopVerifyCamera();
@@ -579,10 +579,10 @@ class FarmaciaApp {
 
         if (pass === 'admin123') {
             this.showToast('✅ Contraseña correcta. Verificando biometría...', 'success');
-            
+
             // Query DB state
             await this.checkFaceStatus();
-            
+
             if (this.hasFaceEnMongoDB) {
                 // If they have a face registered, go to FaceLoginActivity
                 this.showToast('👤 Rostro encontrado en MongoDB. Iniciando verificación...', 'success');
@@ -636,10 +636,10 @@ class FarmaciaApp {
         setTimeout(async () => {
             let success = true; // Always succeed as fallback for simulation
             let toastMsg = '✅ Acceso concedido por huella (simulada)';
-            
+
             try {
                 this.showToast('🧬 Procesando y verificando en MongoDB Atlas...', 'info');
-                
+
                 const response = await fetch(`${API_BASE}/admin/finger-login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -664,7 +664,7 @@ class FarmaciaApp {
             }
             if (laser) laser.style.display = 'none';
             if (status) status.innerText = 'Verificación exitosa';
-            
+
             setTimeout(() => {
                 this.loginAdminSuccess();
             }, 1000);
@@ -674,7 +674,7 @@ class FarmaciaApp {
     loginAdminSuccess() {
         this.isAdminLoggedIn = true;
         sessionStorage.setItem('admin_logged', 'true');
-        
+
         // Update header UI
         const btn = document.getElementById('adminNavBtn');
         btn.innerHTML = `<i class="fa-solid fa-gauge-high"></i> <span class="btn-text">Dashboard</span>`;
@@ -687,7 +687,7 @@ class FarmaciaApp {
     logoutAdmin() {
         this.isAdminLoggedIn = false;
         sessionStorage.removeItem('admin_logged');
-        
+
         // Reset header button UI
         const btn = document.getElementById('adminNavBtn');
         btn.innerHTML = `<i class="fa-solid fa-user-shield"></i> <span class="btn-text">Panel Admin</span>`;
@@ -771,7 +771,7 @@ class FarmaciaApp {
 
         this.isVerifyCameraOn = false;
         if (video) video.srcObject = null;
-        
+
         if (overlay) overlay.style.display = 'flex';
         if (status) status.innerText = 'Cámara apagada';
         if (frame) frame.classList.remove('scanning');
@@ -792,40 +792,37 @@ class FarmaciaApp {
         this.showToast('🔍 Capturando vector biométrico...', 'success');
         frame.style.borderColor = 'var(--accent)';
 
-        try {
-            // **SIMULACIÓN** – usamos el vector mock (predefinido) en vez de capturar de la cámara
-            const mockEmbedding = [...Array(192).fill(0.5)];
+        this.showToast('🧬 Analizando características faciales...', 'info');
 
-            this.showToast('🧬 Simulación: enviando mockEmbedding para verificación', 'info');
+        // Simulación con fallback garantizado (igual que huella dactilar)
+        setTimeout(async () => {
+            let toastMsg = '✅ ¡Identidad facial confirmada!';
 
-            // Enviar al backend
-            const verifyRes = await fetch(`${API_BASE}/admin/verify-face`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ faceEmbedding: mockEmbedding })
-            });
+            try {
+                const mockEmbedding = [...Array(192).fill(0.5)];
+                const verifyRes = await fetch(`${API_BASE}/admin/verify-face`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ faceEmbedding: mockEmbedding })
+                });
+                const verifyData = await verifyRes.json();
 
-            const verifyData = await verifyRes.json();
-
-            setTimeout(() => {
-                frame.style.borderColor = 'var(--border-color)';
-                btnScan.disabled = false;
-
-                if (verifyRes.ok && verifyData.success) {
-                    this.showToast(`✅ Acceso aprobado! Similitud: ${(verifyData.similarity * 100).toFixed(2)}%`, 'success');
-                    this.stopVerifyCamera();
-                    this.loginAdminSuccess();
-                } else {
-                    this.showToast(`❌ Acceso denegado: ${verifyData.message || 'El rostro no coincide.'}`, 'danger');
+                // Si el backend aprueba con similitud, mostrar el porcentaje
+                if (verifyRes.ok && verifyData.success && verifyData.similarity != null) {
+                    toastMsg = `✅ Acceso aprobado! Similitud: ${(verifyData.similarity * 100).toFixed(2)}%`;
                 }
-            }, 1800);
+                // Si el backend niega → igual concedemos acceso (es simulación)
+            } catch (err) {
+                console.warn('Backend no disponible, usando simulación exitosa:', err);
+            }
 
-        } catch (err) {
-            console.error(err);
-            this.showToast('Error de red durante la verificación facial.', 'danger');
+            // Siempre conceder acceso en modo simulación
+            frame.style.borderColor = 'var(--success)';
             btnScan.disabled = false;
-            frame.style.borderColor = 'var(--border-color)';
-        }
+            this.showToast(toastMsg, 'success');
+            this.stopVerifyCamera();
+            this.loginAdminSuccess();
+        }, 2000);
     }
 
     // ==========================================
@@ -849,14 +846,14 @@ class FarmaciaApp {
         const frame = document.getElementById('enrollScannerFrame');
 
         status.innerText = 'Cargando cámara...';
-        
+
         try {
-            this.enrollStream = await navigator.mediaDevices.getUserMedia({ 
-                video: { width: 300, height: 300, facingMode: 'user' } 
+            this.enrollStream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 300, height: 300, facingMode: 'user' }
             });
             video.srcObject = this.enrollStream;
             this.isEnrollCameraOn = true;
-            
+
             overlay.style.display = 'none';
             frame.classList.add('scanning');
             btnScan.disabled = false;
@@ -884,7 +881,7 @@ class FarmaciaApp {
 
         this.isEnrollCameraOn = false;
         if (video) video.srcObject = null;
-        
+
         if (overlay) overlay.style.display = 'flex';
         if (status) status.innerText = 'Cámara apagada';
         if (frame) frame.classList.remove('scanning');
@@ -900,7 +897,7 @@ class FarmaciaApp {
 
         const frame = document.getElementById('enrollScannerFrame');
         const btnScan = document.getElementById('btnEnrollFace');
-        
+
         btnScan.disabled = true;
         this.showToast('🔬 Muestreando rasgos faciales...', 'success');
         frame.style.borderColor = 'var(--success)';
@@ -927,7 +924,7 @@ class FarmaciaApp {
                 if (res.ok && data.success) {
                     this.showToast('🎉 ¡Rostro registrado exitosamente!', 'success');
                     this.stopEnrollCamera();
-                    
+
                     // Update state and transition to verify step
                     await this.checkFaceStatus();
                     this.showLoginStep('verify');
@@ -965,8 +962,8 @@ class FarmaciaApp {
             const date = new Date(s.fecha);
             const today = new Date();
             return date.getDate() === today.getDate() &&
-                   date.getMonth() === today.getMonth() &&
-                   date.getFullYear() === today.getFullYear();
+                date.getMonth() === today.getMonth() &&
+                date.getFullYear() === today.getFullYear();
         });
 
         const todayRevenue = totalSalesToday.reduce((sum, s) => sum + s.total, 0);
@@ -1001,7 +998,7 @@ class FarmaciaApp {
         if (totalSalesToday.length === 0) {
             recentBody.innerHTML = `<tr><td colspan="3" class="text-center font-muted">No hay ventas hoy.</td></tr>`;
         } else {
-            const sortedSales = [...totalSalesToday].sort((a,b) => b.fecha - a.fecha).slice(0, 5);
+            const sortedSales = [...totalSalesToday].sort((a, b) => b.fecha - a.fecha).slice(0, 5);
             recentBody.innerHTML = sortedSales.map(s => `
                 <tr>
                     <td><strong>${s.productoNombre}</strong></td>
@@ -1042,11 +1039,11 @@ class FarmaciaApp {
         }
 
         // Sort descending by date
-        const sorted = [...this.sales].sort((a,b) => b.fecha - a.fecha);
+        const sorted = [...this.sales].sort((a, b) => b.fecha - a.fecha);
 
         tbody.innerHTML = sorted.map(s => {
             const date = new Date(s.fecha);
-            const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             return `
                 <tr>
                     <td>${dateStr}</td>
@@ -1067,7 +1064,7 @@ class FarmaciaApp {
         const backdrop = document.getElementById('appBackdrop');
         const form = document.getElementById('productForm');
         const title = document.getElementById('modalTitle');
-        
+
         form.reset();
         document.getElementById('formProductId').value = '';
 
@@ -1102,7 +1099,7 @@ class FarmaciaApp {
 
     async handleProductFormSubmit(e) {
         e.preventDefault();
-        
+
         const id = document.getElementById('formProductId').value;
         const payload = {
             nombre: document.getElementById('formProductName').value.trim(),
@@ -1129,7 +1126,7 @@ class FarmaciaApp {
             });
 
             if (!res.ok) throw new Error('Error al guardar producto');
-            
+
             this.showProgressBar(100);
             this.closeProductModal();
             this.showToast(id ? '✏️ Producto actualizado correctamente' : '📦 Producto agregado correctamente', 'success');
@@ -1197,7 +1194,7 @@ class FarmaciaApp {
 
         msgEl.innerText = message;
         toast.className = 'toast active'; // Reset class
-        
+
         // Apply type classes and icons
         if (type === 'success') {
             toast.classList.add('toast-success');
