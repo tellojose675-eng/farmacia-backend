@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farmacia - Farma Vital</title>
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Top Progress Bar (Visual Indicator) -->
+    <div id="topProgressBar" class="progress-bar"></div>
+
+    <!-- MAIN CONTAINER -->
+    <div class="app-container">
+        
+        <!-- HEADER / NAVIGATION -->
+        <header class="main-header">
+            <div class="header-logo" onclick="app.showSection('store')">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-prescription-bottle-medical"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>Farma<span>Vital</span></h1>
+                    <small>Salud & Bienestar</small>
+                </div>
+            </div>
+
+            <!-- Search & Filters (Only visible on store section) -->
+            <div class="header-search-container" id="headerSearchGroup">
+                <div class="search-input-wrapper">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="searchInput" placeholder="Buscar medicamentos, suplementos..." oninput="app.filterProducts()">
+                </div>
+                <select id="categoryFilter" onchange="app.filterProducts()">
+                    <option value="">Todas las categorías</option>
+                </select>
+            </div>
+
+            <!-- Header Actions -->
+            <div class="header-actions">
+                <button class="btn-icon" id="cartToggleButton" onclick="app.toggleCart()" title="Carrito de Compras">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span class="cart-badge" id="cartBadge">0</span>
+                </button>
+                <button class="btn-primary btn-admin-nav" id="adminNavBtn" onclick="app.handleAdminNav()">
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span class="btn-text">Panel Admin</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-content">
+            
+            <!-- SECTION 1: CLIENT STOREFRONT -->
+            <section id="storeSection" class="content-section active">
+                <div class="store-hero">
+                    <div class="hero-content">
+                        <h2>Farma Vital — Tu salud, nuestra prioridad</h2>
+                        <p>Explora nuestro catálogo sincronizado. Compra en línea y recoge en tienda o solicita entrega rápida.</p>
+                    </div>
+                </div>
+
+                <div class="section-title-bar">
+                    <h3>Medicamentos e Insumos Disponibles</h3>
+                    <span class="sync-indicator"><i class="fa-solid fa-rotate sync-spin"></i> Sincronizado con MongoDB</span>
+                </div>
+
+                <!-- Products Grid -->
+                <div class="products-grid" id="productsGrid">
+                    <!-- Dynamic Product Cards will be rendered here -->
+                    <div class="loading-placeholder">
+                        <i class="fa-solid fa-circle-notch fa-spin"></i>
+                        <p>Cargando productos desde la base de datos...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 2: ADMIN LOGIN -->
+            <section id="loginSection" class="content-section">
+                <div class="login-card-container">
+                    <div class="login-card">
+                        
+                        <!-- STEP 1: PASSWORD ENTER (LoginActivity) -->
+                        <div id="loginStepPassword" class="login-step active">
+                            <div class="login-header">
+                                <i class="fa-solid fa-lock login-header-icon"></i>
+                                <h2>Acceso Administrativo</h2>
+                                <p>Ingresa la contraseña para ingresar al panel administrador</p>
+                            </div>
+                            <form id="credentialsForm" onsubmit="app.handlePasswordSubmit(event)">
+                                <div class="form-group">
+                                    <label for="passwordInput"><i class="fa-solid fa-key"></i> Contraseña de Admin</label>
+                                    <input type="password" id="passwordInput" required placeholder="••••••••">
+                                </div>
+                                <button type="submit" class="btn-submit">
+                                    <span>Ingresar</span> <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                            </form>
+                            
+                            <!-- Direct biometric shortcut if registered -->
+                            <div class="face-login-shortcut-container" id="faceLoginShortcutGroup" style="display: none; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+    <p style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-bottom: 0.75rem;">Acceso rápido biometría</p>
+    <button type="button" class="btn-primary btn-block" onclick="app.startDirectFaceLogin()">
+        <i class="fa-solid fa-face-smile"></i> Acceder con Rostro
+    </button>
+</div>
+<div class="finger-login-shortcut-container" id="fingerLoginShortcutGroup" style="display: block; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+    <p style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-bottom: 0.75rem;">Escaneo de huella dactilar (simulado)</p>
+    <button type="button" class="btn-primary btn-block" id="btnFingerprintLogin" onclick="app.handleFingerprintLogin()">
+        <i class="fa-solid fa-fingerprint"></i> Acceder con Huella (Simulada)
+    </button>
+</div>
+                        </div>
+
+                        <!-- STEP 2: FACE VERIFICATION (FaceLoginActivity) -->
+                        <div id="loginStepFaceVerify" class="login-step">
+                            <div class="login-header">
+                                <i class="fa-solid fa-face-viewfinder login-header-icon" style="color: var(--accent);"></i>
+                                <h2>Verificación Facial</h2>
+                                <p>Por favor, mira a la cámara para autenticar tu rostro</p>
+                            </div>
+                            <div class="webcam-scan-area">
+                                <div class="scanner-frame" id="verifyScannerFrame">
+                                    <div class="scanner-laser"></div>
+                                    <video id="verifyWebcamVideo" autoplay muted playsinline class="webcam-video"></video>
+                                    <div class="scanner-overlay" id="verifyScannerOverlay">
+                                        <i class="fa-solid fa-camera scanner-icon"></i>
+                                        <p id="verifyScannerStatus">Cámara apagada</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="biometric-actions">
+                                <button type="button" class="btn-secondary" id="btnToggleVerifyCamera" onclick="app.toggleVerifyCamera()">
+                                    <i class="fa-solid fa-power-off"></i> Cámara
+                                </button>
+                                <button type="button" class="btn-primary" id="btnVerifyFace" onclick="app.verifyFaceScan()" disabled>
+                                    <i class="fa-solid fa-expand"></i> Verificar Rostro
+                                </button>
+                            </div>
+                            <div class="biometric-info">
+                                <p id="faceVerifyHint"><i class="fa-solid fa-info-circle"></i> Comparando similitud coseno contra MongoDB Atlas...</p>
+                            </div>
+                            <div style="margin-top: 1.5rem; text-align: center;">
+                                <button class="btn-link" onclick="app.goBackToPasswordStep()">
+                                    <i class="fa-solid fa-chevron-left"></i> Volver a Contraseña
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- STEP 2.5: FINGERPRINT VERIFICATION -->
+                        <div id="loginStepFingerprintVerify" class="login-step">
+                            <div class="login-header">
+                                <i class="fa-solid fa-fingerprint login-header-icon" style="color: var(--accent);"></i>
+                                <h2>Escaneo de Huella Dactilar</h2>
+                                <p>Por favor, presiona el sensor de huella para iniciar la verificación</p>
+                            </div>
+                            <div class="webcam-scan-area" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;">
+                                <div class="scanner-frame" id="fingerprintScannerFrame" style="cursor: pointer; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); height: 180px; width: 180px; margin: 0 auto; border-radius: 50%; border: 3px solid var(--border-color); transition: all 0.3s ease; position: relative; overflow: hidden;" onclick="app.startFingerprintScanningAnimation()">
+                                    <div class="scanner-laser" id="fingerprintLaser" style="display: none; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--accent); box-shadow: 0 0 8px var(--accent); z-index: 10;"></div>
+                                    <i class="fa-solid fa-fingerprint" style="font-size: 5rem; color: var(--accent); transition: transform 0.2s;" id="fingerprintIcon"></i>
+                                </div>
+                                <div class="scanner-status" id="fingerprintScannerStatus" style="font-weight: 500; color: var(--text-muted); margin-top: 0.5rem;">Presiona la huella para escanear</div>
+                            </div>
+                            <div class="biometric-actions" style="margin-top: 1.5rem;">
+                                <button type="button" class="btn-primary btn-block" id="btnVerifyFingerprint" onclick="app.startFingerprintScanningAnimation()">
+                                    <i class="fa-solid fa-play"></i> Iniciar Escaneo de Huella
+                                </button>
+                            </div>
+                            <div style="margin-top: 1.5rem; text-align: center;">
+                                <button class="btn-link" onclick="app.goBackToPasswordStep()">
+                                    <i class="fa-solid fa-chevron-left"></i> Volver a Contraseña
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- STEP 3: FACE ENROLLMENT (FaceEnrollActivity) -->
+                        <div id="loginStepFaceEnroll" class="login-step">
+                            <div class="login-header">
+                                <i class="fa-solid fa-user-plus login-header-icon" style="color: var(--success);"></i>
+                                <h2>Registrar Rostro</h2>
+                                <p>Contraseña correcta. Registra tu rostro en MongoDB para futuros accesos</p>
+                            </div>
+                            <div class="webcam-scan-area">
+                                <div class="scanner-frame" id="enrollScannerFrame">
+                                    <div class="scanner-laser"></div>
+                                    <video id="enrollWebcamVideo" autoplay muted playsinline class="webcam-video"></video>
+                                    <div class="scanner-overlay" id="enrollScannerOverlay">
+                                        <i class="fa-solid fa-camera scanner-icon"></i>
+                                        <p id="enrollScannerStatus">Cámara apagada</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="biometric-actions">
+                                <button type="button" class="btn-secondary" id="btnToggleEnrollCamera" onclick="app.toggleEnrollCamera()">
+                                    <i class="fa-solid fa-power-off"></i> Cámara
+                                </button>
+                                <button type="button" class="btn-primary" id="btnEnrollFace" onclick="app.enrollFaceScan()" disabled>
+                                    <i class="fa-solid fa-user-check"></i> Registrar Rostro
+                                </button>
+                            </div>
+                            <div class="biometric-info">
+                                <p><i class="fa-solid fa-info-circle"></i> Creará un embedding de 192 dimensiones en MongoDB Atlas.</p>
+                            </div>
+                            <div style="margin-top: 1.5rem; text-align: center;">
+                                <button class="btn-link" onclick="app.goBackToPasswordStep()">
+                                    <i class="fa-solid fa-chevron-left"></i> Volver a Contraseña
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="login-footer">
+                            <button class="btn-link" onclick="app.showSection('store')">
+                                <i class="fa-solid fa-chevron-left"></i> Volver a la Tienda
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: ADMIN DASHBOARD -->
+            <section id="adminSection" class="content-section">
+                <div class="admin-dashboard-container">
+                    
+                    <!-- Dashboard Sidebar/Navigation -->
+                    <div class="admin-sidebar">
+                        <div class="admin-profile">
+                            <div class="admin-avatar">
+                                <i class="fa-solid fa-user-tie"></i>
+                            </div>
+                            <h4>Administrador</h4>
+                            <span class="badge badge-success">Conectado</span>
+                        </div>
+                        <nav class="admin-nav-menu">
+                            <button class="admin-nav-item active" onclick="app.switchAdminTab('dashboard')" id="adminTab-dashboard">
+                                <i class="fa-solid fa-chart-pie"></i> Resumen General
+                            </button>
+                            <button class="admin-nav-item" onclick="app.switchAdminTab('products')" id="adminTab-products">
+                                <i class="fa-solid fa-boxes-stacked"></i> Gestionar Productos
+                            </button>
+                            <button class="admin-nav-item" onclick="app.switchAdminTab('sales')" id="adminTab-sales">
+                                <i class="fa-solid fa-file-invoice-dollar"></i> Registro de Ventas
+                            </button>
+                        </nav>
+                        <div class="admin-sidebar-footer">
+                            <button class="btn-danger btn-block" onclick="app.logoutAdmin()">
+                                <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Dashboard Main Content Panel -->
+                    <div class="admin-panel-content">
+                        
+                        <!-- TAB: DASHBOARD OVERVIEW -->
+                        <div id="adminPanel-dashboard" class="admin-tab-panel active">
+                            <div class="admin-panel-header">
+                                <h2>Resumen General de Operaciones</h2>
+                                <p>Monitoreo en tiempo real sincronizado con la app Android</p>
+                            </div>
+
+                            <!-- KPI Statistics Cards -->
+                            <div class="stats-grid">
+                                <div class="stat-card">
+                                    <div class="stat-icon icon-products">
+                                        <i class="fa-solid fa-prescription-bottle-medical"></i>
+                                    </div>
+                                    <div class="stat-info">
+                                        <h4 id="statTotalProducts">0</h4>
+                                        <p>Productos en Catálogo</p>
+                                    </div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-icon icon-sales">
+                                        <i class="fa-solid fa-cash-register"></i>
+                                    </div>
+                                    <div class="stat-info">
+                                        <h4 id="statTodaySales">0</h4>
+                                        <p>Ventas del Día</p>
+                                    </div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-icon icon-income">
+                                        <i class="fa-solid fa-money-bill-trend-up"></i>
+                                    </div>
+                                    <div class="stat-info">
+                                        <h4 id="statTotalRevenue">S/ 0.00</h4>
+                                        <p>Ingresos del Día</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Stock Alerts & Recent Activities -->
+                            <div class="dashboard-details-grid">
+                                <!-- Alerts Box -->
+                                <div class="detail-box">
+                                    <div class="box-header">
+                                        <h3><i class="fa-solid fa-triangle-exclamation color-danger"></i> Alertas de Stock Crítico</h3>
+                                        <span class="badge badge-danger" id="stockAlertCount">0</span>
+                                    </div>
+                                    <div class="box-body">
+                                        <ul class="stock-alerts-list" id="stockAlertsList">
+                                            <!-- Dynamically filled with low stock items -->
+                                            <li class="alert-empty">✅ Todos los productos tienen stock suficiente.</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <!-- Recent Sales -->
+                                <div class="detail-box">
+                                    <div class="box-header">
+                                        <h3><i class="fa-solid fa-clock-rotate-left"></i> Ventas Recientes</h3>
+                                    </div>
+                                    <div class="box-body">
+                                        <div class="table-responsive">
+                                            <table class="table-mini">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Producto</th>
+                                                        <th>Cant.</th>
+                                                        <th>Total</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="recentSalesBody">
+                                                    <!-- Filled dynamically -->
+                                                    <tr>
+                                                        <td colspan="3" class="text-center font-muted">No hay ventas registradas hoy.</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB: PRODUCTS CRUD -->
+                        <div id="adminPanel-products" class="admin-tab-panel">
+                            <div class="admin-panel-header flex-header">
+                                <div>
+                                    <h2>Gestión del Inventario</h2>
+                                    <p>Agrega, edita y elimina los medicamentos en tiempo real</p>
+                                </div>
+                                <button class="btn-primary" onclick="app.openProductModal()">
+                                    <i class="fa-solid fa-plus"></i> Nuevo Producto
+                                </button>
+                            </div>
+
+                            <!-- Products Table -->
+                            <div class="table-responsive card-table">
+                                <table class="table-main">
+                                    <thead>
+                                        <tr>
+                                            <th>Producto</th>
+                                            <th>Categoría</th>
+                                            <th>Precio</th>
+                                            <th>Stock</th>
+                                            <th class="text-right">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="adminProductsTableBody">
+                                        <!-- Filled dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- TAB: SALES LOG -->
+                        <div id="adminPanel-sales" class="admin-tab-panel">
+                            <div class="admin-panel-header">
+                                <h2>Historial Completo de Ventas</h2>
+                                <p>Registro histórico sincronizado desde todos los dispositivos</p>
+                            </div>
+
+                            <!-- Sales Table -->
+                            <div class="table-responsive card-table">
+                                <table class="table-main">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha/Hora</th>
+                                            <th>Producto Vendido</th>
+                                            <th>Cantidad</th>
+                                            <th>Total Recaudado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="fullSalesTableBody">
+                                        <!-- Filled dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- CART SIDE PANEL (DRAWER) -->
+        <aside class="cart-drawer" id="cartDrawer">
+            <div class="cart-drawer-header">
+                <h3><i class="fa-solid fa-basket-shopping"></i> Carrito de Compras</h3>
+                <button class="btn-icon" onclick="app.toggleCart()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="cart-drawer-body" id="cartItemsContainer">
+                <!-- Cart Items rendered dynamically -->
+                <div class="cart-empty-message">
+                    <i class="fa-solid fa-cart-flatbed"></i>
+                    <p>Tu carrito está vacío</p>
+                    <button class="btn-primary btn-sm" onclick="app.toggleCart()">Explorar Productos</button>
+                </div>
+            </div>
+            <div class="cart-drawer-footer">
+                <div class="cart-totals">
+                    <div class="total-row">
+                        <span>Total a pagar:</span>
+                        <strong id="cartTotalPrice">S/ 0.00</strong>
+                    </div>
+                </div>
+                <div class="cart-actions">
+                    <button class="btn-secondary" onclick="app.clearCart()" id="btnClearCart" disabled>
+                        <i class="fa-solid fa-trash-can"></i> Vaciar
+                    </button>
+                    <button class="btn-primary" onclick="app.checkoutCart()" id="btnCheckoutCart" disabled>
+                        <i class="fa-solid fa-circle-check"></i> Realizar Compra
+                    </button>
+                </div>
+            </div>
+        </aside>
+        <!-- Backdrop for Drawer and Modals -->
+        <div class="backdrop" id="appBackdrop" onclick="app.handleBackdropClick()"></div>
+
+        <!-- PRODUCT ADD/EDIT MODAL -->
+        <div class="modal" id="productModal">
+            <div class="modal-header">
+                <h3 id="modalTitle">Agregar Nuevo Producto</h3>
+                <button class="btn-icon" onclick="app.closeProductModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="productForm" onsubmit="app.handleProductFormSubmit(event)">
+                    <input type="hidden" id="formProductId">
+                    <div class="form-row">
+                        <div class="form-group col-12">
+                            <label for="formProductName">Nombre del Producto</label>
+                            <input type="text" id="formProductName" required placeholder="Ej. Amoxicilina 500mg">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label for="formProductCategory">Categoría</label>
+                            <select id="formProductCategory" required>
+                                <option value="Medicamentos">Medicamentos</option>
+                                <option value="Vitaminas">Vitaminas</option>
+                                <option value="Cuidado Personal">Cuidado Personal</option>
+                                <option value="Otros">Otros</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-6">
+                            <label for="formProductPrice">Precio (S/)</label>
+                            <input type="number" id="formProductPrice" step="0.01" min="0.1" required placeholder="0.00">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-6">
+                            <label for="formProductStock">Stock Inicial</label>
+                            <input type="number" id="formProductStock" min="0" required placeholder="0">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-12">
+                            <label for="formProductDescription">Descripción</label>
+                            <textarea id="formProductDescription" rows="3" required placeholder="Breve detalle sobre la dosis, indicaciones o presentación..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="app.closeProductModal()">Cancelar</button>
+                        <button type="submit" class="btn-primary" id="btnSaveProduct">Guardar Producto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- FLOATING TOAST NOTIFICATION -->
+        <div id="toastNotification" class="toast">
+            <span class="toast-icon"><i class="fa-solid fa-info-circle"></i></span>
+            <span class="toast-message" id="toastMessage">Notificación</span>
+        </div>
+
+    </div>
+
+    <!-- Inject main JavaScript file -->
+    <script src="app.js"></script>
+</body>
+</html>
